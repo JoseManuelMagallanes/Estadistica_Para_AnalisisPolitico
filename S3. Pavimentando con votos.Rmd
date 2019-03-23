@@ -1,0 +1,420 @@
+---
+output:
+  html_document: default
+  html_notebook: default
+---
+<br> 
+<center><img src="http://i.imgur.com/tveTlt8.png" width="300"></center>
+
+## Curso: Estadística Para el Análisis Político II<br> Semestre 2018-II<br> 
+### Prof. José Manuel Magallanes, PhD 
+
+#### Elaborado por María Gracia Becerra
+____
+
+## Pavimentando con votos 
+
+**Objetivo**: Determinar qué fatores explican los recursos destinados a los municipios para el desarrollo vial en Colombia durante el primer gobierno del presidente Uribe (2002-2006).
+
+**Pregunta de investigación:** ¿Qué factores determinaron la asignación presupuestal del gasto en infraestructura vial en Colombia durante el primer gobierno de Uribe? 
+
+### Justificación del tema
+
+1. Colombia se caracteriza por su geografía accidentada. El tema de la ineficiencia de la interconexión del transporte ha estado continuamente en la agenda del gobierno. 
+
+2. Se diseñaron herramientas técnicas para racionalizar la inversión en infraestructura vial: Plan Vial 2500 y Programa Visión Colombiana 2019. 
+
+3. El gobierno destacó ante el congreso sus avances en materia de infraerstructura vial. En total, se pavimentaron más de 7 000 km!
+
+4. Distintos analistas destacaron como la priorización del gasto en infraestructura vial no parece responder a una priorización técnica. Gaviria (2007): "Los proyectos han sido seleccionados en base a un criterio político". 
+
+### Hipótesis 
+
+**Hipotesis 1:** La asignación presupuestal responde a criterios técnicos del PND. _Criterios técnicos_.
+
+**Hipótesis 2:** La asignación presupuestal responde a negociaciones bilaterales entre el Ejecutivo y el Legislativo basadas en negociaciones políticas y electorales. _Mecanismos clientelistas_.
+
+**Hipótesis 3:** La asignación presupuestal responde al esfuerzo del gobierno for fortalecer su base social a través de los CCG. _Esfuerzos populistas_.
+
+### Datos
+
+Se construyó una base de datos original en la que se recogió información sobre los montos del presupuesto destinados para ser invertidos en obras de infraestructura vial municipal, junto con información de cada municipio durante el periodo 2002-2006. 
+
+Carguemos la data:
+
+```{r eval=FALSE}
+link="https://github.com/PoliticayGobiernoPUCP/EstadisticaPoliticaGobiernoII/raw/master/sesiones/data/PAVIMENTANDO.sav"
+
+library(foreign) 
+pavimentando=read.spss(link, to.data.frame=T, use.value.labels = F) 
+head(pavimentando)
+```
+
+```{r eval=FALSE}
+names(pavimentando)
+```
+
+### Operacionalización 
+
+#### Variable dependiente
+
+La variable que se busca explicar es la apropiación presupuestal total (en millones de dólares) que se le asignó a cada municipio durante el periodo de estudio.
+
+**Nota:** Para construir está variable se identificaron los municipios involucrados en cada Proyecto de Inversión Pública. En tanto el proyecto no discrimina el valor exacto invertido en cada municipio, a cada uno de ellos se le asignó el monto total del proyecto. 
+
+Estructura:
+
+```{r eval=FALSE}
+str(pavimentando$apropiaciondolar)
+```
+
+Estadísticos descriptivos:
+
+```{r eval=FALSE}
+summary(pavimentando$apropiaciondolar)
+```
+
+Distribución: 
+
+```{r eval=FALSE}
+hist(pavimentando$apropiaciondolar, main="Distribución de la apropiación presupuestal",ylab = 'Cantidad de municipios',xlab='Millones de dólares asignados',col = 'gray',border = NA)
+```
+
+La apropiación presupuestal promedio fue de 8 millones de dólares. Se observa que existen municipios con montos 0 de inversión en infraestructura vial. 
+
+```{r eval=FALSE}
+nrow(pavimentando[pavimentando$apropiaciondolar== 0,])
+```
+
+Son 600 los municipios que no tuvieron recursos asignados en el primer periodo de Uribe!
+
+#### Variables independientes
+
+**Criterios técnicos**
+
+- Municipios priorizados
+
+Se ha creado una _variable nominal dicotómica_ que identifica si el municipio ha sido considerado como prioridad técnica en el Plan Nacional de Desarrollo, el Plan 2500 y el Banco de Proyectos de Inversión.
+
+```{r eval=FALSE}
+str(pavimentando$priorizado)
+```
+
+```{r eval=FALSE}
+pavimentando$priorizado = factor(pavimentando$priorizado, labels=c("No", "Si"))
+str(pavimentando$priorizado) #comprobamos
+```
+
+```{r eval=FALSE}
+table(pavimentando$priorizado)
+prop.table(table(pavimentando$priorizado))*100
+```
+```{r}
+barplot(prop.table(table(pavimentando$priorizado))*100,ylim = c(0,100),ylab = '%',
+        xlab='¿Priorizado técnicamente?',
+        main='Distribución de municipios según priorización',
+        col = c('gray','lightblue'),border = c(NA,NA))
+```
+```{r}
+boxplot(pavimentando$apropiaciondolar~pavimentando$priorizado,horizontal=T,
+        xlab='Millones de dólares asignados', 
+        ylab='¿Priorizado técnicamente?',
+        main='Asignación presupuestal segun priorizacion del municipio',
+        col = c('gray','lightblue'))
+```
+
+
+276 municipios han sido priorizados. Ello corresponde al 25% del total de municipios. 
+
+Relación con apropiación presupuestal:
+
+```{r eval=FALSE}
+t.test(pavimentando$apropiaciondolar~pavimentando$priorizado,var.equal = T)
+```
+
+**OJO**: ¿Qué pasa si filtramos para analizar solo a los distritos con asignación presupuestal?
+
+**Mecanismos clientelistas**
+
+Se utiliza información sobre el comportamiento electoral del municipio.
+
+- Votos oposición 
+
+Se ha creado una _variable numérica_ con el porcentaje de votos que obtuvieron los candidatos a la Cámara de Rpresentantes que pertenecían a partidos de oposición. 
+
+```{r eval=FALSE}
+str(pavimentando$pctopo)
+```
+
+```{r eval=FALSE}
+summary(pavimentando$pctopo)
+```
+
+El porcentaje promedio es de 27.8% de votos. 
+
+```{r}
+library(car) 
+plot(apropiaciondolar ~ pctopo, data=pavimentando, 
+   xlab="Porcentaje de Votos en CDR 2002", ylab="Millones de dolares asignads", 
+   main="Relación entre asignación presupuestal e importancia de la oposición")
+
+abline(lm(apropiaciondolar ~ pctopo, data=pavimentando), col="red",
+       lwd=3) 
+p=cor.test(pavimentando$apropiaciondolar,pavimentando$pctopo)
+text(85,100,paste('r=',round(p$statistic,3)),cex = 2)
+text(87,80,paste('sig:',round(p$p.value,3)),cex = 1.5,col = 'orange')
+```
+
+```{r}
+boxplot(pavimentando$apropiaciondolar~pavimentando$consejocomunal,horizontal=T,
+        xlab='Millones de dólares asignados', 
+        ylab='Con CC',
+        main='Asignación presupuestal en municipios con Consejo Comunal \ny con ejecución del presupuesto',
+        col = c('gray','lightblue'))
+```
+
+```{r}
+boxplot(pavimentando$apropiaciondolar~pavimentando$uribista,horizontal=T,
+        xlab='Millones de dólares asignados', 
+        ylab='¿Alcalde uribista?',
+        main='Asignación presupuestal en municipios con alcaldes uribistas',
+        col = c('gray','lightblue'))
+```
+
+
+```{r}
+
+library("ggpubr")
+ggscatter(pavimentando[complete.cases(pavimentando),], x = "pctopo", y = "apropiaciondolar", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Porcentaje de Votos en CDR 2002", 
+          ylab = "Millones de dolares asignados")
+```
+
+```{r}
+library(car) 
+scatterplot(apropiaciondolar ~ pctopo | priorizado, data=pavimentando, 
+   xlab="Weight of Car", ylab="Miles Per Gallon", 
+   main="Enhanced Scatter Plot")
+```
+
+
+Relación con asignación presupuestal:
+
+```{r eval=FALSE}
+cor.test(pavimentando$apropiaciondolar, pavimentando$pctopo)
+```
+
+- Municipios con alcaldes uribistas
+
+Se ha creado una _variable nominal dicotómica_ que identifica si en la alcaldía ganó un candidato de partidos simpatizantes con el uribismo. 
+
+```{r eval=FALSE}
+str(pavimentando$uribista)
+```
+
+```{r eval=FALSE}
+pavimentando$uribista = factor(pavimentando$uribista, labels=c("No", "Si"))
+str(pavimentando$uribista) #comprobamos
+```
+
+```{r eval=FALSE}
+table(pavimentando$uribista)
+prop.table(table(pavimentando$uribista))*100
+```
+
+En 560 municipios ganó la alcaldía un candidato uribista. Ello representa al 62.7% de municipios. 
+
+Relación con apropiación presupuestal:
+
+```{r eval=FALSE}
+t.test(pavimentando$apropiaciondolar~pavimentando$uribista,var.equal = T)
+```
+
+**Esfuerzos populistas**
+
+- Consejos Comunales 
+
+Se ha creado una _variable nominal dicotómica_ que identifica si en el municipio se han realizado Consejos Comunales. 
+
+```{r eval=FALSE}
+str(pavimentando$consejocomunal)
+```
+
+```{r eval=FALSE}
+pavimentando$consejocomunal= factor(pavimentando$consejocomunal, labels=c("No", "Si"))
+str(pavimentando$consejocomunal) #comprobamos
+```
+
+```{r eval=FALSE}
+table(pavimentando$consejocomunal)
+prop.table(table(pavimentando$consejocomunal))*100
+```
+
+
+```{r}
+boxplot(pavimentando$apropiaciondolar~pavimentando$ejecucion,horizontal=T,
+        xlab='Millones de dólares asignados', 
+        ylab='Con CC y Ejecución',
+        main='Asignación presupuestal en municipios con Consejo Comunal (CC)\n y ejecucion',
+        col = c('gray','lightblue'))
+```
+
+Relación con apropiación presupuestal:
+
+```{r eval=FALSE}
+t.test(pavimentando$apropiaciondolar~pavimentando$consejocomunal,var.equal = T)
+```
+
+En 60 municipios se han realizado Consejos Comunales. Ello representa al 5% de municipios. 
+
+- Consejo comunal con ejecución
+
+Se ha creado una _variable nominal dicotómica_ que identifica a los municipios en los que efectivamente se ejecutaron recursos como resultado de las promesas hechas en los Consejos Comunales.
+
+```{r eval=FALSE}
+str(pavimentando$ejecucion)
+```
+
+```{r eval=FALSE}
+pavimentando$ejecucion= factor(pavimentando$ejecucion, labels=c("No", "Si"))
+str(pavimentando$ejecucion) #comprobamos
+```
+
+```{r eval=FALSE}
+table(pavimentando$ejecucion)
+prop.table(table(pavimentando$ejecucion))*100
+```
+
+En 41 municipios se ejecutó presupuesto como resultado de promesas hechas en los Consejos Comunales. Ello representa al 3.7% de municipios.
+
+Relación con apropiación presupuestal:
+
+```{r eval=FALSE}
+t.test(pavimentando$apropiaciondolar~pavimentando$ejecucion,var.equal = T)
+```
+
+**OJO**: ¿Qué pasa si filtramos para analizar solo a los distritos con asignación presupuestal?
+
+#### Variables de control
+
+Se incorporan dos variables para controlar su efecto en la apropiación presupuestal.
+
+- Población total 
+
+Variable numérica que identifica el número de habitantes por cada cien mil. 
+
+```{r eval=FALSE}
+str(pavimentando$poblacioncienmil)
+```
+
+```{r eval=FALSE}
+summary(pavimentando$poblacioncienmil)
+```
+
+Relación con asignación presupuestal:
+
+```{r eval=FALSE}
+cor.test(pavimentando$apropiaciondolar, pavimentando$poblacioncienmil)
+```
+
+- NBI
+
+Variable numérica que identifica el nivel de pobreza de cada municipio. 
+
+```{r eval=FALSE}
+str(pavimentando$nbi)
+```
+
+```{r eval=FALSE}
+summary(pavimentando$nbi)
+```
+
+Relación con asignación presupuestal:
+
+```{r eval=FALSE}
+cor.test(pavimentando$apropiaciondolar, pavimentando$nbi)
+```
+
+## Modelos de regresión lineal
+
+Para evaluar las diferentes hipótesis sobre los distintos factores que afectan la apropiación presupuestal para inversión en obras de infraestructura vial se estiman un modelo de regresión lineal.
+
+El modelo considerando todas las variables independientes es el siguiente: 
+
+```{r eval=FALSE}
+modelo1=glm(apropiaciondolar~.,data=pavimentando,family ="gaussian")
+summary(modelo1)
+```
+
+**OJO**: ¿Qué pasa si filtramos para analizar solo a los distritos con asignación presupuestal?
+
+### Requisitos regresión lineal 
+
+1. Residuos cercanos a cero
+
+La diferencia entre el valor observado de la variable dependiente (y) y el valor predicho (ŷ) se denomina residuo (e). Cada punto de datos tiene un residuo.
+
+Se espera que el  **promedio de los residuos** sea cercano a 0. 
+
+```{r eval=FALSE}
+mean(modelo1$residuals)
+```
+
+2. Homocedasticidad y valores influyentes
+
+La **homocedasticidad**, es una característica de un modelo de regresión lineal que implica que los la varianza de los errores es constante. Este término, que es lo contrario de **heterocedasticidad**, se emplea para nombrar la propiedad de algunos modelos de regresión lineal en los que los errores de estimación son constantes a lo largo de las observaciones. Una varianza constante permite disponer de modelos más fiables. 
+
+La homocedasticidad se evalúa en el gráfico *Scale Location*. Este gráfico muestra si los residuos se distribuyen por igual. Lo que queremos es ver puntos aleatorios distribuidos a lo largo del plano. 
+
+Los **valores influyentes** con casos en nuestra data que no siguen el patrón general del resto de casos. No todos los valores atípicos influyen en el análisis de regresión. Aunque nuestros datos tengan valores extremos, es posible que no sean influyentes para determinar una línea de regresión. Eso significa que los resultados no serían muy diferentes si los incluyéramos o los excluyéramos del análisis.
+
+El gráfico para identificar influyentes es *Residual vs. Leverage*. En este gráfico, los patrones no son relevantes. Debemos buscar los casos identificados en el gráfico.  
+
+```{r eval=FALSE}
+par(mfrow=c(2,2))
+plot(modelo1)
+```
+
+3. Baja correlación entre variables independientes (Xs) y residuos
+
+Si existe correlación entre las variables independientes y los residuos podría ser indicación de que una variable explicativa ha sido omitida del modelo. Queremos que el p-value sea cercano a 1. 
+
+```{r eval=FALSE}
+data2=data[complete.cases(data),]
+
+for (var in data[-7]){
+  var= as.numeric(var)
+  corr=cor.test(modelo1$residuals,var)
+  print(corr$p.value)
+}
+```
+
+4. No multicolinealidad 
+
+La *multicolinealidad* es una situación en la que se presenta una fuerte correlación entre variables explicativas del modelo. Cuando el valor de la prueba VIF es mayor a 2 o más significa que esa variable tiene una fuerte correlación con otras variables incluidas en el modelo.  
+
+```{r eval=FALSE}
+vif(modelo1) 
+```
+
+5. Normalidad de los residuos 
+
+Si el p-value de la prueba de Shapiro-Wilk es menor a 0.05 entonces NO hay normalidad.
+
+Por su parte, el gráfico nos muestra la distribución de los residuos. La linea del gráfico nos muestra cómo debería ser la distribución normal de los errores. 
+
+Si la distribución de los residuos no parece seguir el modelo de probabilidad normal, los resultados del análisis deben ser interpretados con cuidado. 
+
+```{r eval=FALSE}
+shapiro.test(modelo1$residuals)
+
+x <- modelo1$residuals 
+h<-hist(x) 
+xfit<-seq(min(x),max(x),length=40) 
+yfit<-dnorm(xfit,mean=mean(x),sd=sd(x)) 
+yfit <- yfit*diff(h$mids[1:2])*length(x) 
+lines(xfit, yfit, col="blue", lwd=2)
+```
+
