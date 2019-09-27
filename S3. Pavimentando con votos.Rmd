@@ -418,3 +418,28 @@ yfit <- yfit*diff(h$mids[1:2])*length(x)
 lines(xfit, yfit, col="blue", lwd=2)
 ```
 
+
+```{r}
+library(dotwhisker)
+library(broom)
+library(dplyr)
+```
+
+There is some preprocessing needed to use ggplot. 
+```{r}
+modelo1=lm(apropiaciondolar~priorizado+pctopo+uribista+consejocomunal+poblacioncienmil+nbi,data=pavimentando)
+summary(modelo1)
+
+```
+
+```{r}
+
+model1_t = tidy(modelo1) %>%   
+    mutate(model = "Model 1")
+
+dwplot(model1_t) + 
+    geom_vline(xintercept = 0, 
+               colour = "red", 
+               linetype = 2) +
+    scale_colour_grey(start = .1, end = .7) +theme_bw()
+```
